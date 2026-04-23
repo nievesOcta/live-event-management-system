@@ -1,0 +1,101 @@
+import customtkinter as ctk
+from tkinter import ttk, messagebox
+import conexion
+import ventas  # Importante para usar la función generar_pdf_universal
+import os
+import qrcode
+
+def abrir_historial_cliente():
+    ventana = ctk.CTkToplevel()
+    ventana.title("Historial de Compras - TicketMaster Pro")
+    ventana.geometry("1100x700")
+    ventana.after(100, lambda: ventana.focus())
+
+    # --- ENCABEZADO ---
+    header = ctk.CTkFrame(ventana, height=80, fg_color="#1a1a1a")
+    header.pack(fill="x", padx=15, pady=15)
+    ctk.CTkLabel(header, text="BUSCADOR DE BOLETOS COMPRADOS", font=("Roboto", 24, "bold")).pack(pady=20)
+
+    # --- BARRA DE BÚSQUEDA ---
+    f_busqueda = ctk.CTkFrame(ventana, fg_color="transparent")
+    f_busqueda.pack(fill="x", padx=40, pady=10)
+
+    ent_nombre = ctk.CTkEntry(f_busqueda, placeholder_text="Ingrese el nombre exacto del cliente...", width=500, height=40)
+    ent_nombre.pack(side="left", padx=10)
+
+    # --- TABLA DE RESULTADOS ---
+    f_tabla = ctk.CTkFrame(ventana)
+    f_tabla.pack(fill="both", expand=True, padx=40, pady=20)
+
+    columnas = ("Folio", "Evento", "Recinto", "Fecha Evento", "Zona", "Total", "Estado")
+    tabla = ttk.Treeview(f_tabla, columns=columnas, show="headings")
+    
+    for col in columnas:
+        tabla.heading(col, text=col.upper())
+        tabla.column(col, anchor="center", width=130)
+
+    scroll = ttk.Scrollbar(f_tabla, orient="vertical", command=tabla.yview)
+    tabla.configure(yscroll=scroll.set)
+    tabla.pack(side="left", fill="both", expand=True)
+    scroll.pack(side="right", fill="y")
+
+    def buscar_en_bd():
+        nombre = ent_nombre.get().strip()
+        if not nombre:
+            messagebox.showwarning("Atención", "Escribe un nombre para buscar.")
+            return
+
+        for i in tabla.get_children(): tabla.delete(i)
+
+        db = conexion.conectar_db()
+        try:
+            cur = db.cursor()
+            # Consulta completa que trae incluso el nombre de la zona (si la guardas en tblReservaciones o la cruzas)
+            query = """
+                SELECT r.ID, e.Nombre, (SELECT Nombre FROM tblLugares WHERE ID=e.tblLugares_ID), 
+                e.Fecha, 'General', r.Total, r.Estado 
+                FROM tblReservaciones r 
+                JOIN tblEventos e ON r.Eventos_ID = e.ID 
+                WHERE r.Cliente LIKE %s
+            """
+            cur.execute(query, (f"%{nombre}%",))
+            for fila in cur.fetchall():
+                tabla.insert("", "end", values=fila)
+        except Exception as e:
+            messagebox.showerror("Error", f"Error en la consulta: {e}")
+        finally:
+            db.close()
+
+    ctk.CTkButton(f_busqueda, text="🔍 BUSCAR", width=150, height=40, command=buscar_en_bd).pack(side="left", padx=10)
+
+    # --- RE-GENERAR PDF ---
+    def recuperar_boleto_pdf():
+        seleccion = tabla.selection()
+        if not seleccion:
+            messagebox.showwarning("Selección", "Elige una compra de la lista.")
+            return
+
+        datos = tabla.item(seleccion)['values']
+        folio = datos[0]
+        qr_path = f"boletos_generados/boleto_{folio}.png"
+
+        # Re-crear QR si no existe
+        if not os.path.exists(qr_path):
+            qrcode.make(f"TM_PRO|RECUPEAR|ID:{folio}").save(qr_path)
+
+        # Usar la función de ventas.py para el diseño del PDF
+        ventas.generar_pdf_universal({
+            "folio": folio,
+            "cliente": ent_nombre.get(),
+            "evento": datos[1],
+            "recinto": datos[2],
+            "fecha": datos[3],
+            "zona": datos[4],
+            "precio": f"${datos[5]:,.2f}",
+            "qr_path": qr_path
+        })
+
+    btn_pdf = ctk.CTkButton(ventana, text="📥 DESCARGAR BOLETO SELECCIONADO", 
+                             fg_color="#3498db", hover_color="#2980b9", height=50, 
+                             font=("Roboto", 16, "bold"), command=recuperar_boleto_pdf)
+    btn_pdf.pack(pady=30)

@@ -60,6 +60,7 @@ def abrir_gestion_recintos():
     ventana = ctk.CTkToplevel()
     ventana.title("Gestión de Recintos")
     ventana.geometry("900x600")
+    ventana.after(100, lambda: ventana.focus())
 
     tabview = ctk.CTkTabview(ventana)
     tabview.pack(pady=10, padx=20, fill="both", expand=True)
@@ -88,10 +89,34 @@ def abrir_gestion_recintos():
     en_c.pack(pady=10)
 
     def guardar_r():
-        db = conexion.conectar_db(); cursor = db.cursor()
-        cursor.execute("INSERT INTO tblLugares (Nombre, Direccion, CapacidadTotal) VALUES (?, ?, ?)",
-                       (en_n.get(), en_d.get(), en_c.get()))
-        db.commit(); db.close(); cargar(); tabview.set("Lista de Recintos")
+        nombre = en_n.get().strip()
+        direccion = en_d.get().strip()
+        capacidad = en_c.get().strip()
+        if not nombre or not direccion or not capacidad:
+            messagebox.showwarning("Campos incompletos", "Todos los campos son obligatorios.")
+            return
+        try:
+            cap = int(capacidad)
+        except ValueError:
+            messagebox.showerror("Error", "La capacidad debe ser un número entero.")
+            return
+        db = conexion.conectar_db()
+        if db:
+            try:
+                cursor = db.cursor()
+                cursor.execute("INSERT INTO tblLugares (Nombre, Direccion, CapacidadTotal) VALUES (?, ?, ?)",
+                               (nombre, direccion, cap))
+                db.commit()
+                messagebox.showinfo("Éxito", f"Recinto '{nombre}' guardado correctamente.")
+                en_n.delete(0, 'end')
+                en_d.delete(0, 'end')
+                en_c.delete(0, 'end')
+                cargar()
+                tabview.set("Lista de Recintos")
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo guardar el recinto: {e}")
+            finally:
+                db.close()
 
     ctk.CTkButton(t_nuevo, text="Guardar Recinto", command=guardar_r).pack(pady=20)
     cargar()

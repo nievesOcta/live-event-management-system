@@ -6,6 +6,8 @@ import ventas
 import admin_tools
 import check_in
 import reportes
+import historial_cliente
+import cartelera
 
 # --- Configuración de Tema ---
 ctk.set_appearance_mode("dark")
@@ -85,10 +87,18 @@ class AppTicketMaster(ctk.CTk):
 
         # --- SECCIÓN: VENTAS (COMÚN) ---
         ctk.CTkLabel(menu, text="TAQUILLA", font=("Roboto", 12, "bold"), text_color="gray").pack(anchor="w", padx=15, pady=(10, 5))
-        
-        ctk.CTkButton(menu, text="🛒 Punto de Venta / Compras", width=500, height=65, 
+
+        ctk.CTkButton(menu, text="🎭 Cartelera de Eventos", width=500, height=55,
+                      fg_color="#1a5276", hover_color="#154360", font=("Roboto", 15, "bold"),
+                      command=cartelera.abrir_cartelera).pack(pady=8)
+
+        ctk.CTkButton(menu, text="🛒 Punto de Venta / Compras", width=500, height=65,
                       fg_color="#2ecc71", hover_color="#27ae60", font=("Roboto", 18, "bold"),
                       command=lambda: ventas.abrir_punto_venta(usuario_id, es_admin=es_admin)).pack(pady=10)
+
+        ctk.CTkButton(menu, text="🎫 Mi Historial de Boletos", width=500, height=55,
+                      fg_color="#2471a3", hover_color="#1f618d", font=("Roboto", 15, "bold"),
+                      command=lambda: historial_cliente.abrir_historial_cliente(usuario_id, es_admin=es_admin)).pack(pady=8)
 
         # --- SECCIÓN: ADMINISTRACIÓN (SOLO ADMIN) ---
         if es_admin:

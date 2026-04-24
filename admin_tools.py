@@ -27,7 +27,7 @@ def abrir_gestion_usuarios():
         if db:
             cursor = db.cursor()
             cursor.execute("SELECT ID, Nombre, Mail, Rol FROM tblUsuarios")
-            for fila in cursor.fetchall(): tabla.insert("", "end", values=fila)
+            for fila in cursor.fetchall(): tabla.insert("", "end", values=tuple(fila))
             db.close()
 
     # Formulario de registro (Pestaña Nuevo)
@@ -78,7 +78,7 @@ def abrir_gestion_recintos():
         if db:
             cursor = db.cursor()
             cursor.execute("SELECT ID, Nombre, Direccion, CapacidadTotal FROM tblLugares")
-            for r in cursor.fetchall(): tabla.insert("", "end", values=r)
+            for r in cursor.fetchall(): tabla.insert("", "end", values=tuple(r))
             db.close()
 
     en_n = ctk.CTkEntry(t_nuevo, placeholder_text="Nombre", width=400)
@@ -138,7 +138,7 @@ def abrir_config_catalogos():
         def ref():
             for i in tree.get_children(): tree.delete(i)
             db = conexion.conectar_db(); cursor = db.cursor()
-            cursor.execute(f"SELECT * FROM {tabla_db}"); [tree.insert("", "end", values=f) for f in cursor.fetchall()]
+            cursor.execute(f"SELECT * FROM {tabla_db}"); [tree.insert("", "end", values=tuple(f)) for f in cursor.fetchall()]
             db.close()
         def add():
             db = conexion.conectar_db(); cursor = db.cursor()

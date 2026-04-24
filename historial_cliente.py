@@ -88,7 +88,7 @@ def abrir_historial_cliente(usuario_id, es_admin=False):
                 messagebox.showinfo("Sin resultados", "No se encontraron boletos.")
                 return
             for fila in filas:
-                tabla.insert("", "end", values=fila)
+                tabla.insert("", "end", values=tuple(fila))
         except Exception as e:
             messagebox.showerror("Error", f"Error en la consulta: {e}")
         finally:

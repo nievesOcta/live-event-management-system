@@ -1,122 +1,93 @@
--- ============================================================
---  Conciertos DB - Schema completo
---  Generado desde el código fuente del proyecto
--- ============================================================
+-- Conciertos DB - SQLite Schema
 
-CREATE DATABASE IF NOT EXISTS Conciertos;
-USE Conciertos;
-
--- ------------------------------------------------------------
--- CATÁLOGOS
--- ------------------------------------------------------------
+PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS catGenero (
-    ID   INT AUTO_INCREMENT PRIMARY KEY,
-    Nombre VARCHAR(100) NOT NULL
+    ID     INTEGER PRIMARY KEY AUTOINCREMENT,
+    Nombre TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS catMetodoPago (
-    ID   INT AUTO_INCREMENT PRIMARY KEY,
-    Nombre VARCHAR(100) NOT NULL
+    ID     INTEGER PRIMARY KEY AUTOINCREMENT,
+    Nombre TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS catTiposZona (
-    ID   INT AUTO_INCREMENT PRIMARY KEY,
-    Nombre VARCHAR(100) NOT NULL
+    ID     INTEGER PRIMARY KEY AUTOINCREMENT,
+    Nombre TEXT NOT NULL
 );
-
--- ------------------------------------------------------------
--- USUARIOS
--- ------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS tblUsuarios (
-    ID       INT AUTO_INCREMENT PRIMARY KEY,
-    Nombre   VARCHAR(150) NOT NULL,
-    Mail     VARCHAR(150) NOT NULL UNIQUE,
-    Password VARCHAR(255) NOT NULL,
-    Rol      ENUM('Admin', 'Cliente') NOT NULL DEFAULT 'Cliente'
+    ID       INTEGER PRIMARY KEY AUTOINCREMENT,
+    Nombre   TEXT NOT NULL,
+    Mail     TEXT NOT NULL UNIQUE,
+    Password TEXT NOT NULL,
+    Rol      TEXT NOT NULL DEFAULT 'Cliente' CHECK(Rol IN ('Admin', 'Cliente'))
 );
-
--- Usuario admin por defecto (password: admin123)
-INSERT INTO tblUsuarios (Nombre, Mail, Password, Rol)
-VALUES ('Administrador', 'admin@ticketmaster.com', 'admin123', 'Admin');
-
--- ------------------------------------------------------------
--- LUGARES / RECINTOS
--- ------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS tblLugares (
-    ID             INT AUTO_INCREMENT PRIMARY KEY,
-    Nombre         VARCHAR(200) NOT NULL,
-    Direccion      VARCHAR(300),
-    CapacidadTotal INT
+    ID             INTEGER PRIMARY KEY AUTOINCREMENT,
+    Nombre         TEXT NOT NULL,
+    Direccion      TEXT,
+    CapacidadTotal INTEGER
 );
 
--- ------------------------------------------------------------
--- EVENTOS
--- ------------------------------------------------------------
-
 CREATE TABLE IF NOT EXISTS tblEventos (
-    ID             INT AUTO_INCREMENT PRIMARY KEY,
-    Nombre         VARCHAR(200) NOT NULL,
-    Fecha          DATETIME NOT NULL,
-    tblLugares_ID  INT,
-    Lugares_ID     INT,
-    Descripcion    TEXT,
-    Estado         ENUM('Activo', 'Cancelado', 'Finalizado') NOT NULL DEFAULT 'Activo',
+    ID            INTEGER PRIMARY KEY AUTOINCREMENT,
+    Nombre        TEXT NOT NULL,
+    Fecha         TEXT NOT NULL,
+    tblLugares_ID INTEGER,
+    Lugares_ID    INTEGER,
+    Descripcion   TEXT,
+    Estado        TEXT NOT NULL DEFAULT 'Activo' CHECK(Estado IN ('Activo', 'Cancelado', 'Finalizado')),
     FOREIGN KEY (tblLugares_ID) REFERENCES tblLugares(ID) ON DELETE SET NULL,
     FOREIGN KEY (Lugares_ID)    REFERENCES tblLugares(ID) ON DELETE SET NULL
 );
 
--- ------------------------------------------------------------
--- ZONAS DE EVENTOS
--- ------------------------------------------------------------
-
--- Vista/tabla usada en ventas.py y check_in.py
 CREATE TABLE IF NOT EXISTS tblZonasEventos (
-    ID           INT AUTO_INCREMENT PRIMARY KEY,
-    Eventos_ID   INT NOT NULL,
-    NombreZona   VARCHAR(150) NOT NULL,
-    Capacidad    INT,
-    Precio       DECIMAL(10,2),
+    ID         INTEGER PRIMARY KEY AUTOINCREMENT,
+    Eventos_ID INTEGER NOT NULL,
+    NombreZona TEXT NOT NULL,
+    Capacidad  INTEGER,
+    Precio     REAL,
     FOREIGN KEY (Eventos_ID) REFERENCES tblEventos(ID) ON DELETE CASCADE
 );
 
--- Tabla usada en eventos.py al publicar un concierto
 CREATE TABLE IF NOT EXISTS tblZonas (
-    ID               INT AUTO_INCREMENT PRIMARY KEY,
-    Nombre           VARCHAR(150),
-    Capacidad        INT,
-    Precio           DECIMAL(10,2),
-    Eventos_ID       INT,
-    catTiposZona_ID  INT,
+    ID              INTEGER PRIMARY KEY AUTOINCREMENT,
+    Nombre          TEXT,
+    Capacidad       INTEGER,
+    Precio          REAL,
+    Eventos_ID      INTEGER,
+    catTiposZona_ID INTEGER,
     FOREIGN KEY (Eventos_ID)      REFERENCES tblEventos(ID) ON DELETE CASCADE,
     FOREIGN KEY (catTiposZona_ID) REFERENCES catTiposZona(ID) ON DELETE SET NULL
 );
 
--- ------------------------------------------------------------
--- RESERVACIONES
--- ------------------------------------------------------------
-
 CREATE TABLE IF NOT EXISTS tblReservaciones (
-    ID               INT AUTO_INCREMENT PRIMARY KEY,
-    Usuarios_ID      INT,
-    Eventos_ID       INT,
-    FechaReservacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-    Total            DECIMAL(10,2),
-    Estado           ENUM('Confirmado','Cancelado','Usado') DEFAULT 'Confirmado',
-    Cliente          VARCHAR(200),
+    ID               INTEGER PRIMARY KEY AUTOINCREMENT,
+    Usuarios_ID      INTEGER,
+    Eventos_ID       INTEGER,
+    FechaReservacion TEXT DEFAULT (datetime('now', 'localtime')),
+    Total            REAL,
+    Estado           TEXT DEFAULT 'Confirmado' CHECK(Estado IN ('Confirmado', 'Cancelado', 'Usado')),
+    Cliente          TEXT,
     FOREIGN KEY (Usuarios_ID) REFERENCES tblUsuarios(ID) ON DELETE SET NULL,
     FOREIGN KEY (Eventos_ID)  REFERENCES tblEventos(ID)  ON DELETE SET NULL
 );
 
--- ------------------------------------------------------------
--- DATOS DE EJEMPLO (opcional, comenta si no los necesitas)
--- ------------------------------------------------------------
+-- Seed data (INSERT OR IGNORE so re-running is safe)
+INSERT OR IGNORE INTO tblUsuarios (ID, Nombre, Mail, Password, Rol)
+VALUES (1, 'Administrador', 'admin@ticketmaster.com', 'admin123', 'Admin');
 
-INSERT INTO catGenero (Nombre) VALUES ('Rock'), ('Pop'), ('Electrónica'), ('Regional Mexicano');
-INSERT INTO catMetodoPago (Nombre) VALUES ('Efectivo'), ('Tarjeta de Crédito'), ('Transferencia');
-INSERT INTO catTiposZona (Nombre) VALUES ('General'), ('VIP'), ('Palco'), ('Campo');
+INSERT OR IGNORE INTO catGenero (ID, Nombre) VALUES
+    (1, 'Rock'), (2, 'Pop'), (3, 'Electrónica'), (4, 'Regional Mexicano');
 
-INSERT INTO tblLugares (Nombre, Direccion, CapacidadTotal)
-VALUES ('Auditorio Norte', 'Av. Principal 100, Monterrey', 5000);
+INSERT OR IGNORE INTO catMetodoPago (ID, Nombre) VALUES
+    (1, 'Efectivo'), (2, 'Tarjeta de Crédito'), (3, 'Transferencia');
+
+INSERT OR IGNORE INTO catTiposZona (ID, Nombre) VALUES
+    (1, 'General'), (2, 'VIP'), (3, 'Palco'), (4, 'Campo');
+
+INSERT OR IGNORE INTO tblLugares (ID, Nombre, Direccion, CapacidadTotal)
+VALUES (1, 'Auditorio Norte', 'Av. Principal 100, Monterrey', 5000);

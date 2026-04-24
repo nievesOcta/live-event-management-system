@@ -1,15 +1,17 @@
 import customtkinter as ctk
 from tkinter import ttk, messagebox, filedialog
 import conexion
+from conexion import BASE_DIR
 import qrcode
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 import os
 from datetime import datetime
 
-# Directorio de almacenamiento
-if not os.path.exists("boletos_generados"):
-    os.makedirs("boletos_generados")
+# Directorio de almacenamiento junto al ejecutable / script
+BOLETOS_DIR = os.path.join(BASE_DIR, "boletos_generados")
+if not os.path.exists(BOLETOS_DIR):
+    os.makedirs(BOLETOS_DIR)
 
 # --- GENERADOR DE BOLETOS PDF ---
 def generar_pdf_universal(datos):
@@ -120,11 +122,11 @@ def abrir_punto_venta(usuario_id, es_admin=False):
     # --- LÓGICA DINÁMICA DE LA BD ---
     def actualizar_evento(choice):
         db = conexion.conectar_db()
-        cur = db.cursor(dictionary=True)
+        cur = db.cursor()
         # Traer ID, Fecha y Nombre de Recinto
         query = """
-            SELECT e.ID, e.Nombre, e.Fecha, (SELECT Nombre FROM tblLugares WHERE ID=e.tblLugares_ID) as Recinto 
-            FROM tblEventos e WHERE e.Nombre = %s
+            SELECT e.ID, e.Nombre, e.Fecha, (SELECT Nombre FROM tblLugares WHERE ID=e.tblLugares_ID) as Recinto
+            FROM tblEventos e WHERE e.Nombre = ?
         """
         cur.execute(query, (choice,))
         ev = cur.fetchone()
@@ -132,7 +134,7 @@ def abrir_punto_venta(usuario_id, es_admin=False):
             l_ev_preview.configure(text=ev['Nombre'].upper())
             l_inf_preview.configure(text=f"{ev['Recinto']} | {ev['Fecha']}")
             # Filtrar zonas del evento
-            cur.execute("SELECT NombreZona FROM tblZonasEventos WHERE Eventos_ID = %s", (ev['ID'],))
+            cur.execute("SELECT NombreZona FROM tblZonasEventos WHERE Eventos_ID = ?", (ev['ID'],))
             zonas = [z['NombreZona'] for z in cur.fetchall()]
             combo_zona.configure(values=zonas)
             if zonas:
@@ -144,9 +146,9 @@ def abrir_punto_venta(usuario_id, es_admin=False):
         db = conexion.conectar_db()
         cur = db.cursor()
         query = """
-            SELECT Precio FROM tblZonasEventos ze 
-            JOIN tblEventos e ON ze.Eventos_ID = e.ID 
-            WHERE e.Nombre = %s AND ze.NombreZona = %s
+            SELECT Precio FROM tblZonasEventos ze
+            JOIN tblEventos e ON ze.Eventos_ID = e.ID
+            WHERE e.Nombre = ? AND ze.NombreZona = ?
         """
         cur.execute(query, (var_evento.get(), choice))
         res = cur.fetchone()
@@ -172,24 +174,24 @@ def abrir_punto_venta(usuario_id, es_admin=False):
 
         db = conexion.conectar_db()
         try:
-            cur = db.cursor(dictionary=True)
+            cur = db.cursor()
             # 1. Obtener datos finales del evento para el registro
             cur.execute("""
-                SELECT e.ID, (SELECT Nombre FROM tblLugares WHERE ID=e.tblLugares_ID) as Recinto, e.Fecha 
-                FROM tblEventos e WHERE e.Nombre = %s""", (evento,))
+                SELECT e.ID, (SELECT Nombre FROM tblLugares WHERE ID=e.tblLugares_ID) as Recinto, e.Fecha
+                FROM tblEventos e WHERE e.Nombre = ?""", (evento,))
             ev_final = cur.fetchone()
 
             # 2. Insertar reservación en BD
-            sql = """INSERT INTO tblReservaciones 
-                     (Usuarios_ID, Eventos_ID, FechaReservacion, Total, Estado, Cliente) 
-                     VALUES (%s, %s, %s, %s, %s, %s)"""
-            cur.execute(sql, (usuario_id, ev_final['ID'], datetime.now(), var_precio.get(), 'Confirmado', cliente))
+            sql = """INSERT INTO tblReservaciones
+                     (Usuarios_ID, Eventos_ID, FechaReservacion, Total, Estado, Cliente)
+                     VALUES (?, ?, ?, ?, ?, ?)"""
+            cur.execute(sql, (usuario_id, ev_final['ID'], datetime.now().strftime("%Y-%m-%d %H:%M:%S"), var_precio.get(), 'Confirmado', cliente))
             db.commit()
             
             folio = cur.lastrowid
             
             # 3. Generar el código QR único
-            qr_path = f"boletos_generados/boleto_{folio}.png"
+            qr_path = os.path.join(BOLETOS_DIR, f"boleto_{folio}.png")
             img_qr = qrcode.make(f"TM_PRO|ID:{folio}|USER:{cliente}")
             img_qr.save(qr_path)
             

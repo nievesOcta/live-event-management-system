@@ -1,6 +1,6 @@
 # EventosPRO — Sistema de Gestión de Boletos y Eventos
 
-Sistema de escritorio para la administración de eventos musicales, venta de boletos, control de acceso y generación de reportes. Desarrollado con Python y MySQL.
+Sistema de escritorio para la administración de eventos musicales, venta de boletos, control de acceso y generación de reportes. Desarrollado con Python y SQLite.
 
 ---
 
@@ -21,12 +21,13 @@ Sistema de escritorio para la administración de eventos musicales, venta de bol
 | Componente | Tecnología |
 |---|---|
 | Interfaz gráfica | Python 3 · customtkinter · tkinter |
-| Base de datos | MySQL 8 (vía Docker) |
+| Base de datos | SQLite 3 (integrado en Python, sin instalación adicional) |
 | Generación de PDF | ReportLab |
 | Códigos QR | qrcode + Pillow |
 | Exportación Excel | pandas + openpyxl |
 | Empaquetado | PyInstaller |
-| Base de datos (contenedor) | Docker · docker-compose |
+
+> No se requiere Docker, MySQL ni ningún servidor de base de datos externo. La base de datos es un archivo local (`conciertos.db`) que se crea automáticamente al iniciar la aplicación por primera vez.
 
 ---
 
@@ -34,53 +35,26 @@ Sistema de escritorio para la administración de eventos musicales, venta de bol
 
 ### Requisitos previos
 
-- **Docker Desktop para Windows**
-  - Descarga: https://docs.docker.com/desktop/install/windows-install/
-  - Durante la instalación, habilita la opción **"Use WSL 2 instead of Hyper-V"** (recomendado)
-  - Reinicia el equipo si el instalador lo solicita
+Ninguno. No se necesita instalar Docker, MySQL ni ningún software adicional.
 
-### Paso 1 — Preparar la carpeta de la aplicación
+### Paso 1 — Obtener el ejecutable
 
-Coloca los siguientes archivos en una misma carpeta (por ejemplo `C:\BoletoPRO\`):
+Descarga el archivo `BoletoPRO.exe` desde la sección **Actions → Artifacts** del repositorio en GitHub, o solicítalo al equipo de desarrollo.
+
+Colócalo en una carpeta de tu elección, por ejemplo:
 
 ```
-BoletoPRO\
-├── BoletoPRO.exe          ← ejecutable de la aplicación
-├── docker-compose.yml     ← configuración de la base de datos
-└── start.bat              ← lanzador (úsalo para abrir la app)
+C:\BoletoPRO\
+└── BoletoPRO.exe
 ```
 
-> El ejecutable `BoletoPRO.exe` se descarga desde la sección **Actions → Artifacts** del repositorio en GitHub, o lo proporciona el equipo de desarrollo.
+### Paso 2 — Iniciar la aplicación
 
-### Paso 2 — Iniciar la base de datos por primera vez
+Haz **doble clic** en `BoletoPRO.exe`.
 
-1. Abre **Docker Desktop** y espera a que el ícono de la ballena en la barra de tareas deje de moverse (indica que Docker está listo).
-2. Abre una ventana de **PowerShell** o **CMD** en la carpeta `BoletoPRO\`.
-3. Ejecuta el siguiente comando para crear e inicializar la base de datos:
+En el primer arranque, la aplicación crea automáticamente la base de datos (`conciertos.db`) en la misma carpeta que el ejecutable y carga el esquema inicial. No es necesario ejecutar ningún comando adicional.
 
-```powershell
-docker-compose up -d
-```
-
-4. Espera unos 15–20 segundos para que MySQL termine de iniciar.
-
-### Paso 3 — Cargar el esquema de la base de datos
-
-> Solo es necesario hacerlo **una vez** al instalar.
-
-Con la base de datos corriendo, importa el esquema desde PowerShell:
-
-```powershell
-docker exec -i sistema-mysql-1 mysql -u root -pZ2obC9kg1512 Conciertos < schema.sql
-```
-
-> Si el nombre del contenedor es diferente, puedes verificarlo con `docker ps`.
-
-### Paso 4 — Iniciar la aplicación
-
-Haz **doble clic** en `start.bat`.
-
-El lanzador verificará que Docker esté activo, iniciará el contenedor de MySQL y abrirá BoletoPRO automáticamente.
+> Asegúrate de que `BoletoPRO.exe` se encuentre en una carpeta donde tengas permisos de escritura (por ejemplo `C:\BoletoPRO\`). Evita ejecutarlo directamente desde la carpeta `Descargas` o desde un dispositivo de solo lectura.
 
 ---
 
@@ -101,17 +75,15 @@ El lanzador verificará que Docker esté activo, iniciará el contenedor de MySQ
 ```
 Sistema/
 ├── main.py                  ← punto de entrada y pantalla de login
-├── conexion.py              ← configuración de la conexión a MySQL
+├── conexion.py              ← configuración de la conexión a SQLite
 ├── ventas.py                ← punto de venta y generación de boletos PDF
 ├── check_in.py              ← validación de entradas por código QR
 ├── reportes.py              ← historial, filtros y exportación a Excel
 ├── eventos.py               ← gestión de eventos y zonas
 ├── admin_tools.py           ← recintos, usuarios y catálogos
-├── schema.sql               ← esquema completo de la base de datos
+├── schema.sql               ← esquema completo de la base de datos (se empaqueta en el .exe)
 ├── requirements.txt         ← dependencias de Python
 ├── main.spec                ← configuración de empaquetado (PyInstaller)
-├── docker-compose.yml       ← contenedor MySQL para desarrollo/producción
-├── start.bat                ← lanzador para Windows
 └── .github/
     └── workflows/
         └── build.yml        ← pipeline de compilación automática del .exe
@@ -139,7 +111,7 @@ El ejecutable resultante estará en `dist\BoletoPRO.exe`.
 
 | Problema | Solución |
 |---|---|
-| "No se pudo conectar a la base de datos" | Verifica que Docker Desktop esté abierto y ejecuta `docker-compose up -d` |
 | La ventana cierra sola al abrir el .exe | Abre un CMD, navega a la carpeta y ejecuta `BoletoPRO.exe` directamente para ver el error |
-| El contenedor tarda en responder | Espera 20–30 segundos adicionales tras iniciar Docker y vuelve a intentarlo |
-| Puerto 3306 ocupado | Cierra cualquier instancia local de MySQL o cambia el puerto en `docker-compose.yml` |
+| "Error al conectar a SQLite" | Verifica que el .exe esté en una carpeta con permisos de escritura y vuelve a intentarlo |
+| La base de datos aparece corrupta o vacía | Elimina el archivo `conciertos.db` de la carpeta del ejecutable; se recreará al siguiente inicio |
+| Antivirus bloquea el .exe | Agrega una excepción para la carpeta de la aplicación; el ejecutable es generado por PyInstaller y puede activar falsos positivos |

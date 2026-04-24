@@ -7,12 +7,8 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=ctk_binaries,
-    datas=ctk_datas + collect_data_files('reportlab'),
+    datas=ctk_datas + collect_data_files('reportlab') + [('schema.sql', '.')],
     hiddenimports=ctk_hiddenimports + [
-        'mysql.connector',
-        'mysql.connector.plugins',
-        'mysql.connector.plugins.mysql_native_password',
-        'mysql.connector.plugins.caching_sha2_password',
         'PIL._tkinter_finder',
         'qrcode.image.pil',
         'qrcode.image.svg',

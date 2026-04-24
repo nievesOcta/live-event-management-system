@@ -46,7 +46,7 @@ def abrir_gestion_usuarios():
         db = conexion.conectar_db()
         if db:
             cursor = db.cursor()
-            cursor.execute("INSERT INTO tblUsuarios (Nombre, Mail, Password, Rol) VALUES (%s, %s, %s, %s)",
+            cursor.execute("INSERT INTO tblUsuarios (Nombre, Mail, Password, Rol) VALUES (?, ?, ?, ?)",
                            (en_nom.get(), en_mail.get(), en_pass.get(), cb_rol.get()))
             db.commit(); db.close()
             messagebox.showinfo("Éxito", "Usuario guardado"); cargar_usuarios()
@@ -89,7 +89,7 @@ def abrir_gestion_recintos():
 
     def guardar_r():
         db = conexion.conectar_db(); cursor = db.cursor()
-        cursor.execute("INSERT INTO tblLugares (Nombre, Direccion, CapacidadTotal) VALUES (%s, %s, %s)",
+        cursor.execute("INSERT INTO tblLugares (Nombre, Direccion, CapacidadTotal) VALUES (?, ?, ?)",
                        (en_n.get(), en_d.get(), en_c.get()))
         db.commit(); db.close(); cargar(); tabview.set("Lista de Recintos")
 
@@ -117,7 +117,7 @@ def abrir_config_catalogos():
             db.close()
         def add():
             db = conexion.conectar_db(); cursor = db.cursor()
-            cursor.execute(f"INSERT INTO {tabla_db} (Nombre) VALUES (%s)", (en.get(),))
+            cursor.execute(f"INSERT INTO {tabla_db} (Nombre) VALUES (?)", (en.get(),))
             db.commit(); db.close(); en.delete(0, 'end'); ref()
 
         ctk.CTkButton(tab, text="Agregar", command=add).pack(pady=5)

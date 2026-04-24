@@ -46,8 +46,8 @@ class AppTicketMaster(ctk.CTk):
         db = conexion.conectar_db()
         if db:
             try:
-                cursor = db.cursor(dictionary=True)
-                query = "SELECT ID, Nombre, Rol FROM tblUsuarios WHERE Mail = %s AND Password = %s"
+                cursor = db.cursor()
+                query = "SELECT ID, Nombre, Rol FROM tblUsuarios WHERE Mail = ? AND Password = ?"
                 cursor.execute(query, (correo, pwd))
                 user = cursor.fetchone()
                 
@@ -60,7 +60,7 @@ class AppTicketMaster(ctk.CTk):
             finally:
                 db.close()
         else:
-            messagebox.showerror("Error de Conexión", "No se pudo conectar a la base de datos MySQL.")
+            messagebox.showerror("Error de Conexión", "No se pudo conectar a la base de datos.")
 
     def abrir_dashboard(self, rol, nombre, usuario_id):
         self.withdraw() # Ocultar login
@@ -135,5 +135,6 @@ class AppTicketMaster(ctk.CTk):
         self.deiconify()
 
 if __name__ == "__main__":
+    conexion.init_db()
     app = AppTicketMaster()
     app.mainloop()

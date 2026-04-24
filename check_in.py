@@ -30,7 +30,7 @@ def abrir_check_in():
         db = conexion.conectar_db()
         if db:
             try:
-                cursor = db.cursor(dictionary=True)
+                cursor = db.cursor()
                 # Buscamos el boleto y el nombre del evento/usuario para confirmar
                 query = """
                     SELECT b.ID, b.EstadoAcceso, e.Nombre as Evento, u.Nombre as Cliente
@@ -39,7 +39,7 @@ def abrir_check_in():
                     JOIN tblReservaciones r ON dr.Reservaciones_ID = r.ID
                     JOIN tblEventos e ON r.Eventos_ID = e.ID
                     JOIN tblUsuarios u ON r.Usuarios_ID = u.ID
-                    WHERE b.CodigoQR = %s
+                    WHERE b.CodigoQR = ?
                 """
                 cursor.execute(query, (codigo,))
                 boleto = cursor.fetchone()
@@ -47,7 +47,7 @@ def abrir_check_in():
                 if boleto:
                     if boleto['EstadoAcceso'] == 'Activo':
                         # Marcar como usado
-                        cursor.execute("UPDATE tblBoletos SET EstadoAcceso = 'Usado' WHERE ID = %s", (boleto['ID'],))
+                        cursor.execute("UPDATE tblBoletos SET EstadoAcceso = 'Usado' WHERE ID = ?", (boleto['ID'],))
                         db.commit()
                         
                         frame_res.configure(fg_color="#27ae60") # Verde

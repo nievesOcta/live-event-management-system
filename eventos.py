@@ -109,14 +109,14 @@ def abrir_gestion_eventos():
                 id_lugar = lugar.split(" - ")[0]
                 
                 # 1. Insertar Evento (Asegúrate de que la columna 'Descripcion' exista en tblEventos)
-                sql_ev = "INSERT INTO tblEventos (Nombre, Fecha, Lugares_ID, Descripcion) VALUES (%s, %s, %s, %s)"
+                sql_ev = "INSERT INTO tblEventos (Nombre, Fecha, Lugares_ID, Descripcion) VALUES (?, ?, ?, ?)"
                 cursor.execute(sql_ev, (nombre, fecha, id_lugar, descripcion))
                 id_evento = cursor.lastrowid
 
                 # 2. Insertar cada Zona
                 for z in lista_zonas_evento:
-                    sql_z = """INSERT INTO tblZonas (Nombre, Capacidad, Precio, Eventos_ID, catTiposZona_ID) 
-                               VALUES (%s, %s, %s, %s, %s)"""
+                    sql_z = """INSERT INTO tblZonas (Nombre, Capacidad, Precio, Eventos_ID, catTiposZona_ID)
+                               VALUES (?, ?, ?, ?, ?)"""
                     cursor.execute(sql_z, (nombre, z['capacidad'], z['precio'], id_evento, z['id_tipo']))
 
                 db.commit()

@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from tkinter import ttk, messagebox, filedialog
 import conexion
+from conexion import BASE_DIR
 import pandas as pd # Para exportar a Excel
 from reportlab.pdfgen import canvas # Para generar el boleto PDF
 from reportlab.lib.pagesizes import letter
@@ -69,7 +70,7 @@ def abrir_buscador_compras():
             
             # Nota: Para el QR, el sistema ya genera una imagen en 'boletos_generados/'
             # Buscamos si existe la imagen con el ID de la reservación
-            qr_path = f"boletos_generados/boleto_{datos[0]}.png"
+            qr_path = os.path.join(BASE_DIR, "boletos_generados", f"boleto_{datos[0]}.png")
             if os.path.exists(qr_path):
                 c.drawImage(qr_path, 400, 670, width=100, height=100)
             

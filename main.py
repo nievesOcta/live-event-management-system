@@ -41,11 +41,6 @@ class AppTicketMaster(ctk.CTk):
                                        font=("Roboto", 16, "bold"), command=self.procesar_login)
         self.btn_login.pack(pady=40)
 
-        self.btn_register = ctk.CTkButton(self.login_frame, text="Crear Cuenta Nueva", width=150, height=20, 
-                                          font=("Roboto", 14, "bold"), fg_color="transparent", border_width=0,
-                                          text_color="#3b8ed0", hover_color="#5dade2", command=self.abrir_registro)
-        self.btn_register.pack(pady=20)
-
     def procesar_login(self):
         correo = self.entry_mail.get()
         pwd = self.entry_pass.get()

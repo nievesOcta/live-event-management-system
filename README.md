@@ -94,7 +94,6 @@ Sistema/
 ## Compilar el ejecutable (desarrolladores)
 
 La compilación se realiza automáticamente en GitHub Actions al hacer `push` a `main`. El archivo `.exe` queda disponible como artefacto en la pestaña **Actions** del repositorio.
-
 Para compilar manualmente en una máquina Windows:
 
 ```powershell

@@ -72,10 +72,10 @@ def abrir_gestion_eventos():
 
         id_tipo = tipo.split(" - ")[0]
         nombre_tipo = tipo.split(" - ")[1]
-        
-        lista_zonas_evento.append({"id_tipo": id_tipo, "capacidad": cap, "precio": pre})
+
+        lista_zonas_evento.append({"id_tipo": id_tipo, "nombre": nombre_tipo, "capacidad": cap, "precio": pre})
         tabla_zonas.insert("", "end", values=(nombre_tipo, cap, f"${pre}"))
-        
+
         ent_cap.delete(0, 'end')
         ent_pre.delete(0, 'end')
 
@@ -107,17 +107,17 @@ def abrir_gestion_eventos():
             try:
                 cursor = db.cursor()
                 id_lugar = lugar.split(" - ")[0]
-                
-                # 1. Insertar Evento (Asegúrate de que la columna 'Descripcion' exista en tblEventos)
-                sql_ev = "INSERT INTO tblEventos (Nombre, Fecha, Lugares_ID, Descripcion) VALUES (?, ?, ?, ?)"
+
+                # 1. Insertar Evento
+                sql_ev = "INSERT INTO tblEventos (Nombre, Fecha, tblLugares_ID, Descripcion) VALUES (?, ?, ?, ?)"
                 cursor.execute(sql_ev, (nombre, fecha, id_lugar, descripcion))
                 id_evento = cursor.lastrowid
 
-                # 2. Insertar cada Zona
+                # 2. Insertar zonas en tblZonasEventos (que es la tabla que usa ventas.py)
                 for z in lista_zonas_evento:
-                    sql_z = """INSERT INTO tblZonas (Nombre, Capacidad, Precio, Eventos_ID, catTiposZona_ID)
-                               VALUES (?, ?, ?, ?, ?)"""
-                    cursor.execute(sql_z, (nombre, z['capacidad'], z['precio'], id_evento, z['id_tipo']))
+                    sql_z = """INSERT INTO tblZonasEventos (Eventos_ID, NombreZona, Capacidad, Precio)
+                               VALUES (?, ?, ?, ?)"""
+                    cursor.execute(sql_z, (id_evento, z['nombre'], z['capacidad'], z['precio']))
 
                 db.commit()
                 messagebox.showinfo("Éxito", f"Evento '{nombre}' publicado correctamente.")
@@ -131,3 +131,109 @@ def abrir_gestion_eventos():
                   command=publicar_evento, fg_color="#2ecc71", height=50).pack(pady=40)
 
     cargar_datos()
+
+    # --- PESTAÑA: EVENTOS ACTIVOS ---
+    ctk.CTkLabel(t_lista, text="EVENTOS REGISTRADOS", font=("Roboto", 18, "bold")).pack(pady=(15, 5))
+
+    f_tabla_ev = ctk.CTkFrame(t_lista)
+    f_tabla_ev.pack(fill="both", expand=True, padx=15, pady=10)
+
+    cols_ev = ("ID", "Nombre", "Fecha", "Recinto", "Estado")
+    col_widths_ev = (50, 260, 160, 200, 110)
+
+    tabla_ev = ttk.Treeview(f_tabla_ev, columns=cols_ev, show="headings", height=18)
+    for col, w in zip(cols_ev, col_widths_ev):
+        tabla_ev.heading(col, text=col.upper())
+        tabla_ev.column(col, anchor="center", width=w)
+
+    scroll_ev = ttk.Scrollbar(f_tabla_ev, orient="vertical", command=tabla_ev.yview)
+    tabla_ev.configure(yscroll=scroll_ev.set)
+    scroll_ev.pack(side="right", fill="y")
+    tabla_ev.pack(side="left", fill="both", expand=True)
+
+    def cargar_eventos_lista():
+        for i in tabla_ev.get_children():
+            tabla_ev.delete(i)
+        db = conexion.conectar_db()
+        if not db:
+            return
+        try:
+            cur = db.cursor()
+            cur.execute("""
+                SELECT e.ID, e.Nombre, e.Fecha,
+                       COALESCE(
+                           (SELECT Nombre FROM tblLugares WHERE ID = e.tblLugares_ID),
+                           (SELECT Nombre FROM tblLugares WHERE ID = e.Lugares_ID),
+                           'N/A'
+                       ),
+                       e.Estado
+                FROM tblEventos e
+                ORDER BY e.Estado ASC, e.Fecha DESC
+            """)
+            for fila in cur.fetchall():
+                tabla_ev.insert("", "end", values=tuple(fila))
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudieron cargar los eventos: {e}")
+        finally:
+            db.close()
+
+    def cambiar_estado(nuevo_estado):
+        sel = tabla_ev.selection()
+        if not sel:
+            messagebox.showwarning("Atención", "Selecciona un evento de la lista.")
+            return
+        datos = tabla_ev.item(sel[0])['values']
+        ev_id, ev_nombre = datos[0], datos[1]
+        if not messagebox.askyesno("Confirmar", f"¿Cambiar estado de '{ev_nombre}' a '{nuevo_estado}'?"):
+            return
+        db = conexion.conectar_db()
+        if db:
+            try:
+                db.cursor().execute("UPDATE tblEventos SET Estado = ? WHERE ID = ?", (nuevo_estado, ev_id))
+                db.commit()
+                cargar_eventos_lista()
+            except Exception as e:
+                messagebox.showerror("Error", str(e))
+            finally:
+                db.close()
+
+    def eliminar_evento():
+        sel = tabla_ev.selection()
+        if not sel:
+            messagebox.showwarning("Atención", "Selecciona un evento.")
+            return
+        datos = tabla_ev.item(sel[0])['values']
+        ev_id, ev_nombre = datos[0], datos[1]
+        if not messagebox.askyesno("Confirmar", f"¿Eliminar '{ev_nombre}'?\nSe eliminarán sus zonas y reservaciones asociadas."):
+            return
+        db = conexion.conectar_db()
+        if db:
+            try:
+                db.cursor().execute("DELETE FROM tblEventos WHERE ID = ?", (ev_id,))
+                db.commit()
+                messagebox.showinfo("Éxito", f"Evento '{ev_nombre}' eliminado.")
+                cargar_eventos_lista()
+            except Exception as e:
+                messagebox.showerror("Error", str(e))
+            finally:
+                db.close()
+
+    f_btns_ev = ctk.CTkFrame(t_lista, fg_color="transparent")
+    f_btns_ev.pack(pady=10)
+
+    ctk.CTkButton(f_btns_ev, text="🔄 Actualizar", width=160, height=40,
+                  command=cargar_eventos_lista).pack(side="left", padx=6)
+    ctk.CTkButton(f_btns_ev, text="✅ Finalizar", fg_color="#e67e22", hover_color="#d35400",
+                  width=160, height=40,
+                  command=lambda: cambiar_estado("Finalizado")).pack(side="left", padx=6)
+    ctk.CTkButton(f_btns_ev, text="❌ Cancelar", fg_color="#e74c3c", hover_color="#c0392b",
+                  width=160, height=40,
+                  command=lambda: cambiar_estado("Cancelado")).pack(side="left", padx=6)
+    ctk.CTkButton(f_btns_ev, text="🔵 Reactivar", fg_color="#2ecc71", hover_color="#27ae60",
+                  width=160, height=40,
+                  command=lambda: cambiar_estado("Activo")).pack(side="left", padx=6)
+    ctk.CTkButton(f_btns_ev, text="🗑️ Eliminar", fg_color="#7f8c8d", hover_color="#616a6b",
+                  width=160, height=40,
+                  command=eliminar_evento).pack(side="left", padx=6)
+
+    cargar_eventos_lista()

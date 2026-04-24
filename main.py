@@ -28,7 +28,7 @@ class AppTicketMaster(ctk.CTk):
         self.login_frame = ctk.CTkFrame(self)
         self.login_frame.pack(pady=40, padx=40, fill="both", expand=True)
 
-        ctk.CTkLabel(self.login_frame, text="TICKET MASTER", font=("Roboto", 34, "bold")).pack(pady=(60, 10))
+        ctk.CTkLabel(self.login_frame, text="LIVE EVENTS", font=("Roboto", 34, "bold")).pack(pady=(60, 10))
         ctk.CTkLabel(self.login_frame, text="Control de Acceso y Ventas", text_color="gray").pack(pady=(0, 40))
 
         self.entry_mail = ctk.CTkEntry(self.login_frame, placeholder_text="Correo Electrónico", width=320, height=45)

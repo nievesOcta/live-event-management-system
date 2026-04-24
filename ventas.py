@@ -29,7 +29,7 @@ def generar_pdf_universal(datos):
         c.rect(0, 650, 612, 142, fill=1, stroke=0)
         c.setFillColorRGB(1, 1, 1)
         c.setFont("Helvetica-Bold", 26)
-        c.drawString(70, 740, "TICKET MASTER PRO")
+        c.drawString(70, 740, "LIVE EVENTS PRO")
         c.setFont("Helvetica", 12)
         c.drawString(70, 725, "COMPROBANTE OFICIAL DE ACCESO")
 

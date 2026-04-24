@@ -85,7 +85,8 @@ def abrir_historial_cliente(usuario_id, es_admin=False):
 
             filas = cur.fetchall()
             if not filas:
-                messagebox.showinfo("Sin resultados", "No se encontraron boletos.")
+                if es_admin:
+                    messagebox.showinfo("Sin resultados", "No se encontraron boletos.")
                 return
             for fila in filas:
                 tabla.insert("", "end", values=tuple(fila))
@@ -111,11 +112,21 @@ def abrir_historial_cliente(usuario_id, es_admin=False):
             fecha_evento   = datos[4]
             total          = datos[6]
         else:
-            nombre_cliente = datos[1]
+            # Para no-admin: columnas son (Folio, Evento, Recinto, Fecha Evento, Fecha Compra, Total, Estado)
             nombre_evento  = datos[1]
             nombre_recinto = datos[2]
             fecha_evento   = datos[3]
             total          = datos[5]
+            # Obtener el nombre del cliente desde la BD
+            try:
+                _db = conexion.conectar_db()
+                _row = _db.cursor().execute(
+                    "SELECT Cliente FROM tblReservaciones WHERE ID = ?", (folio,)
+                ).fetchone()
+                nombre_cliente = _row['Cliente'] if _row and _row['Cliente'] else "Cliente"
+                _db.close()
+            except Exception:
+                nombre_cliente = "Cliente"
 
         qr_path = os.path.join(ventas.BOLETOS_DIR, f"boleto_{folio}.png")
         if not os.path.exists(qr_path):
